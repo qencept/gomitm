@@ -15,22 +15,24 @@ type Mitm struct {
 	tcpClientConn *net.TCPConn
 	tcpServerConn *net.TCPConn
 
-	trusted *trusted.Trusted
-	forging *forging.Forging
+	trusted  *trusted.Trusted
+	forging  *forging.Forging
+	shuttler shuttle.Shuttle
 }
 
-func New(tcpClientConn, tcpServerConn *net.TCPConn, trusted *trusted.Trusted, forging *forging.Forging) *Mitm {
-	return &Mitm{tcpClientConn: tcpClientConn, tcpServerConn: tcpServerConn, trusted: trusted, forging: forging}
+func New(tcpClientConn, tcpServerConn *net.TCPConn, trusted *trusted.Trusted, forging *forging.Forging, shuttler shuttle.Shuttle) *Mitm {
+	return &Mitm{tcpClientConn: tcpClientConn, tcpServerConn: tcpServerConn, trusted: trusted, forging: forging, shuttler: shuttler}
 }
 
 func (m *Mitm) Handle() {
 	clientAddr := m.tcpClientConn.RemoteAddr()
 	serverAddr := m.tcpServerConn.RemoteAddr()
 
-	clientHello, tcpClientWrapper, err := sni.Detect(m.tcpClientConn)
+	clientHello, tcpClientWrapper, err := sni.Detect(*m.tcpClientConn)
 	if err != nil {
 		logrus.Infoln("Assumed raw TCP")
-		shuttle.OverTCP(tcpClientWrapper, m.tcpServerConn)
+		//shuttle.OverTCP(tcpClientWrapper, m.tcpServerConn)
+		m.shuttler.Shuttle(tcpClientWrapper, m.tcpServerConn)
 	} else {
 		tlsServerConn := tls.Client(m.tcpServerConn, &tls.Config{
 			ServerName: clientHello.ServerName,
@@ -73,6 +75,7 @@ func (m *Mitm) Handle() {
 			tlsServerConn.ConnectionState().CipherSuite,
 			tlsServerConn.ConnectionState().NegotiatedProtocol,
 			clientHello.ServerName)
-		shuttle.OverTLS(tlsClientConn, tlsServerConn)
+		//shuttle.OverTLS(tlsClientConn, tlsServerConn)
+		m.shuttler.Shuttle(tlsClientConn, tlsServerConn)
 	}
 }

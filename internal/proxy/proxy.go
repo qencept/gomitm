@@ -5,19 +5,21 @@ import (
 	"github.com/qencept/gomitm/internal/destination"
 	"github.com/qencept/gomitm/internal/forging"
 	"github.com/qencept/gomitm/internal/mitm"
+	"github.com/qencept/gomitm/internal/shuttle"
 	"github.com/qencept/gomitm/internal/trusted"
 	"github.com/sirupsen/logrus"
 	"net"
 )
 
 type Proxy struct {
-	trusted *trusted.Trusted
-	forging *forging.Forging
-	addr    string
+	trusted  *trusted.Trusted
+	forging  *forging.Forging
+	shuttler shuttle.Shuttle
+	addr     string
 }
 
-func New(addr string, trusted *trusted.Trusted, forging *forging.Forging) *Proxy {
-	return &Proxy{trusted: trusted, forging: forging, addr: addr}
+func New(addr string, trusted *trusted.Trusted, forging *forging.Forging, shuttler shuttle.Shuttle) *Proxy {
+	return &Proxy{trusted: trusted, forging: forging, addr: addr, shuttler: shuttler}
 }
 
 func (p *Proxy) Run() error {
@@ -57,5 +59,5 @@ func (p *Proxy) Handle(tcpClientConn *net.TCPConn) {
 	}
 	defer tcpServerConn.Close()
 
-	mitm.New(tcpClientConn, tcpServerConn, p.trusted, p.forging).Handle()
+	mitm.New(tcpClientConn, tcpServerConn, p.trusted, p.forging, p.shuttler).Handle()
 }

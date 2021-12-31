@@ -7,10 +7,10 @@ import (
 )
 
 type ConnReader struct {
-	r io.Reader
+	io.Reader
 }
 
-func (c ConnReader) Read(p []byte) (int, error)         { return c.r.Read(p) }
+func (c ConnReader) Read(p []byte) (int, error)         { return c.Reader.Read(p) }
 func (c ConnReader) Write([]byte) (int, error)          { return 0, io.ErrClosedPipe }
 func (c ConnReader) Close() error                       { return nil }
 func (c ConnReader) LocalAddr() net.Addr                { return nil }

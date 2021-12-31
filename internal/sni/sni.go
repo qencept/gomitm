@@ -8,11 +8,11 @@ import (
 	"net"
 )
 
-func Detect(tcpClientConn net.Conn) (*tls.ClientHelloInfo, *ConnWrapper, error) {
+func Detect(tcpClientConn net.TCPConn) (*tls.ClientHelloInfo, *ConnWrapper, error) {
 	var clientHello *tls.ClientHelloInfo
 	savedBytes := new(bytes.Buffer)
 
-	_ = tls.Server(ConnReader{r: io.TeeReader(tcpClientConn, savedBytes)}, &tls.Config{
+	_ = tls.Server(ConnReader{io.TeeReader(&tcpClientConn, savedBytes)}, &tls.Config{
 		GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
 			clientHello = new(tls.ClientHelloInfo)
 			clientHello = info
@@ -25,6 +25,6 @@ func Detect(tcpClientConn net.Conn) (*tls.ClientHelloInfo, *ConnWrapper, error) 
 		err = fmt.Errorf("no ClientHello")
 	}
 
-	tcpClientConnReader := io.MultiReader(savedBytes, tcpClientConn)
-	return clientHello, &ConnWrapper{r: tcpClientConnReader, c: tcpClientConn}, err
+	tcpClientConnReader := io.MultiReader(savedBytes, &tcpClientConn)
+	return clientHello, &ConnWrapper{r: tcpClientConnReader, TCPConn: tcpClientConn}, err
 }

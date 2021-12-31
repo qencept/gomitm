@@ -6,6 +6,7 @@ import (
 	"github.com/qencept/gomitm/internal/forging"
 	"github.com/qencept/gomitm/internal/proxy"
 	"github.com/qencept/gomitm/internal/trusted"
+	"github.com/qencept/gomitm/mirror"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
@@ -34,8 +35,10 @@ func main() {
 		logrus.Fatal(err)
 	}
 
+	shuttler := mirror.New() //add consumers for traffic mirroring here
+
 	addr := ":" + cfg.Proxy.Port
-	proxyInstance := proxy.New(addr, trustedInstance, forgingInstance)
+	proxyInstance := proxy.New(addr, trustedInstance, forgingInstance, shuttler)
 	if err := proxyInstance.Run(); err != nil {
 		logrus.Fatal(err)
 	}
