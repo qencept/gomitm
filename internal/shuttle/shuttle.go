@@ -14,5 +14,5 @@ type Stream interface {
 }
 
 type Shuttle interface {
-	Shuttle(client Stream, server Stream) error
+	Shuttle(client Stream, server Stream, sni string) error
 }

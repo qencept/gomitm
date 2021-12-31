@@ -30,9 +30,8 @@ func (m *Mitm) Handle() {
 
 	clientHello, tcpClientWrapper, err := sni.Detect(*m.tcpClientConn)
 	if err != nil {
-		logrus.Infoln("Assumed raw TCP")
-		//shuttle.OverTCP(tcpClientWrapper, m.tcpServerConn)
-		m.shuttler.Shuttle(tcpClientWrapper, m.tcpServerConn)
+		logrus.Infof("TCP %v <-> %v \n", clientAddr, serverAddr)
+		m.shuttler.Shuttle(tcpClientWrapper, m.tcpServerConn, "TCP")
 	} else {
 		tlsServerConn := tls.Client(m.tcpServerConn, &tls.Config{
 			ServerName: clientHello.ServerName,
@@ -65,17 +64,12 @@ func (m *Mitm) Handle() {
 			return
 		}
 
-		logrus.Infof("MITM %v (v=0x0%x cs=0x%x alpn=%v) <-> %v (v=0x0%x cs=0x%x alpn=%v) '%v'\n",
+		logrus.Infof("TLS %v (alpn=%v) <-> %v (alpn=%v) '%v'\n",
 			clientAddr,
-			tlsClientConn.ConnectionState().Version,
-			tlsClientConn.ConnectionState().CipherSuite,
 			tlsClientConn.ConnectionState().NegotiatedProtocol,
 			serverAddr,
-			tlsServerConn.ConnectionState().Version,
-			tlsServerConn.ConnectionState().CipherSuite,
 			tlsServerConn.ConnectionState().NegotiatedProtocol,
 			clientHello.ServerName)
-		//shuttle.OverTLS(tlsClientConn, tlsServerConn)
-		m.shuttler.Shuttle(tlsClientConn, tlsServerConn)
+		m.shuttler.Shuttle(tlsClientConn, tlsServerConn, clientHello.ServerName)
 	}
 }

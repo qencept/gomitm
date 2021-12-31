@@ -35,7 +35,8 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	shuttler := mirror.New() //add consumers for traffic mirroring here
+	inspectors := []mirror.Inspector{mirror.NewDumper(), mirror.NewHttpParser()}
+	shuttler := mirror.New(inspectors...)
 
 	addr := ":" + cfg.Proxy.Port
 	proxyInstance := proxy.New(addr, trustedInstance, forgingInstance, shuttler)
