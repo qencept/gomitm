@@ -19,6 +19,6 @@ func (d *Dumper) Session(client, server shuttle.Stream, sni string) (io.WriteClo
 	return c2s, s2c
 }
 
-func NewDumper() Inspector {
+func NewDumper() SessionInspector {
 	return &Dumper{"dump"}
 }

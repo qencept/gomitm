@@ -35,7 +35,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	inspectors := []mirror.Inspector{mirror.NewDumper(), mirror.NewHttpParser()}
+	inspectors := []mirror.SessionInspector{mirror.NewDumper(), mirror.NewHttp(mirror.NewDoh())}
 	shuttler := mirror.New(inspectors...)
 
 	addr := ":" + cfg.Proxy.Port

@@ -6,7 +6,7 @@ import (
 )
 
 type Mirror struct {
-	inspectors []Inspector
+	inspectors []SessionInspector
 }
 
 func mirror(dst, src shuttle.Stream, mirror io.Writer) {
@@ -15,7 +15,7 @@ func mirror(dst, src shuttle.Stream, mirror io.Writer) {
 }
 
 func (m *Mirror) Shuttle(client, server shuttle.Stream, sni string) error {
-	c2s, s2c := make([]io.Writer, 0), make([]io.Writer, 0)
+	var c2s, s2c []io.Writer
 	for _, inspector := range m.inspectors {
 		c, s := inspector.Session(client, server, sni)
 		defer c.Close()
@@ -34,6 +34,6 @@ func (m *Mirror) Shuttle(client, server shuttle.Stream, sni string) error {
 	return nil
 }
 
-func New(inspectors ...Inspector) shuttle.Shuttle {
+func New(inspectors ...SessionInspector) shuttle.Shuttle {
 	return &Mirror{inspectors: inspectors}
 }
