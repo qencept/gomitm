@@ -2,24 +2,23 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/qencept/gomitm/internal/destination"
-	"github.com/qencept/gomitm/internal/forging"
-	"github.com/qencept/gomitm/internal/mitm"
-	"github.com/qencept/gomitm/internal/shuttle"
-	"github.com/qencept/gomitm/internal/trusted"
+	"github.com/qencept/gomitm/pkg/mitm/destination"
+	"github.com/qencept/gomitm/pkg/mitm/forgery"
+	"github.com/qencept/gomitm/pkg/mitm/shuttle"
+	"github.com/qencept/gomitm/pkg/mitm/trusted"
 	"github.com/sirupsen/logrus"
 	"net"
 )
 
 type Proxy struct {
-	trusted  *trusted.Trusted
-	forging  *forging.Forging
-	shuttler shuttle.Shuttle
-	addr     string
+	trusted *trusted.Trusted
+	forgery *forgery.Forgery
+	shuttle shuttle.Shuttle
+	addr    string
 }
 
-func New(addr string, trusted *trusted.Trusted, forging *forging.Forging, shuttler shuttle.Shuttle) *Proxy {
-	return &Proxy{trusted: trusted, forging: forging, addr: addr, shuttler: shuttler}
+func New(addr string, trusted *trusted.Trusted, forgery *forgery.Forgery, shuttle shuttle.Shuttle) *Proxy {
+	return &Proxy{trusted: trusted, forgery: forgery, addr: addr, shuttle: shuttle}
 }
 
 func (p *Proxy) Run() error {
@@ -38,14 +37,14 @@ func (p *Proxy) Run() error {
 		if err != nil {
 			return fmt.Errorf("accepting: %w", err)
 		}
-
-		go p.Handle(tcpClientConn)
+		go func() {
+			defer tcpClientConn.Close()
+			p.Handle(tcpClientConn)
+		}()
 	}
 }
 
 func (p *Proxy) Handle(tcpClientConn *net.TCPConn) {
-	defer tcpClientConn.Close()
-
 	serverAddr, err := destination.Detect(tcpClientConn)
 	if err != nil {
 		logrus.Warnln("Destination detect:", err)
@@ -59,5 +58,5 @@ func (p *Proxy) Handle(tcpClientConn *net.TCPConn) {
 	}
 	defer tcpServerConn.Close()
 
-	mitm.New(tcpClientConn, tcpServerConn, p.trusted, p.forging, p.shuttler).Handle()
+	Mitm(tcpClientConn, tcpServerConn, p.trusted, p.forgery, p.shuttle)
 }

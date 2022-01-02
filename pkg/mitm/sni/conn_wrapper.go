@@ -12,3 +12,5 @@ type ConnWrapper struct {
 }
 
 func (c ConnWrapper) Read(p []byte) (int, error) { return c.r.Read(p) }
+
+var _ net.Conn = (*ConnWrapper)(nil)

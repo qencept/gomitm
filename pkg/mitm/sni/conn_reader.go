@@ -18,3 +18,5 @@ func (c ConnReader) RemoteAddr() net.Addr               { return nil }
 func (c ConnReader) SetDeadline(t time.Time) error      { return nil }
 func (c ConnReader) SetReadDeadline(t time.Time) error  { return nil }
 func (c ConnReader) SetWriteDeadline(t time.Time) error { return nil }
+
+var _ net.Conn = (*ConnReader)(nil)

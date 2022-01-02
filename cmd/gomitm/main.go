@@ -3,44 +3,56 @@ package main
 import (
 	"flag"
 	"github.com/qencept/gomitm/internal/config"
-	"github.com/qencept/gomitm/internal/forging"
-	"github.com/qencept/gomitm/internal/proxy"
-	"github.com/qencept/gomitm/internal/trusted"
-	"github.com/qencept/gomitm/mirror"
+	"github.com/qencept/gomitm/pkg/mirror/doh"
+	"github.com/qencept/gomitm/pkg/mirror/http"
+	"github.com/qencept/gomitm/pkg/mirror/session"
+	"github.com/qencept/gomitm/pkg/mitm/forgery"
+	"github.com/qencept/gomitm/pkg/mitm/proxy"
+	"github.com/qencept/gomitm/pkg/mitm/shuttle"
+	"github.com/qencept/gomitm/pkg/mitm/trusted"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
 )
 
 func main() {
-	configPath := flag.String("config", "", "Configuration file")
-	flag.Parse()
-
 	logrus.SetLevel(logrus.DebugLevel)
-
-	cfg, err := config.ReadFile(*configPath)
-	if err != nil {
+	if err := run(); err != nil {
 		logrus.Fatal(err)
 	}
+}
 
+func run() error {
 	rand.Seed(time.Now().UnixNano())
 
-	trustedInstance, err := trusted.New(cfg.Proxy.TrustedRootCaCerts)
+	cfgFile := flag.String("config", "", "Configuration file")
+	flag.Parse()
+
+	c, err := config.ReadFile(*cfgFile)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 
-	forgingInstance, err := forging.New(cfg.Proxy.ForgingRootCa.Cert, cfg.Proxy.ForgingRootCa.Key)
+	t, err := trusted.New(c.Proxy.TrustedRootCaCerts)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 
-	inspectors := []mirror.SessionInspector{mirror.NewDumper(), mirror.NewHttp(mirror.NewDoh())}
-	shuttler := mirror.New(inspectors...)
-
-	addr := ":" + cfg.Proxy.Port
-	proxyInstance := proxy.New(addr, trustedInstance, forgingInstance, shuttler)
-	if err := proxyInstance.Run(); err != nil {
-		logrus.Fatal(err)
+	f, err := forgery.New(c.Proxy.ForgingRootCa.Cert, c.Proxy.ForgingRootCa.Key)
+	if err != nil {
+		return err
 	}
+
+	addr := ":" + c.Proxy.Port
+	if err := proxy.New(addr, t, f, setInspectors()).Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setInspectors() shuttle.Shuttle {
+	httpInspectors := []httpi.Inspector{httpi.NewDumper("http"), doh.NewDoh("doh")}
+	sessionInspectors := []session.Inspector{session.NewDumper("session"), httpi.NewHttp(httpInspectors...)}
+	return session.New(sessionInspectors...)
 }
