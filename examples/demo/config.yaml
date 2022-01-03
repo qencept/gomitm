@@ -1,5 +1,9 @@
 proxy:
   port: 8888
   forgingRootCa:
-    cert: ca_mitm.crt
-    key:  ca_mitm.key
+    cert: "ca_mitm.crt"
+    key:  "ca_mitm.key"
+paths:
+  doh: "doh"
+  http: "http"
+  session: "session"

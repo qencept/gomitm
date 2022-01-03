@@ -1,4 +1,4 @@
-package forging
+package forgery
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"os"
 )
 
-type Forging struct {
+type Forgery struct {
 	cert *x509.Certificate
 	key  interface{}
 
@@ -23,7 +23,7 @@ type Forging struct {
 	serverKeyBytes   []byte
 }
 
-func New(certFile, keyFile string) (*Forging, error) {
+func New(certFile, keyFile string) (*Forgery, error) {
 	cert, key, err := loadCertKey(certFile, keyFile)
 	if err != nil {
 		return nil, err
@@ -35,10 +35,10 @@ func New(certFile, keyFile string) (*Forging, error) {
 		return nil, err
 	}
 
-	return &Forging{cert: cert, key: key, serverPrivateKey: privateKey, serverKeyBytes: keyBytes}, nil
+	return &Forgery{cert: cert, key: key, serverPrivateKey: privateKey, serverKeyBytes: keyBytes}, nil
 }
 
-func (f *Forging) Forge(serverCert *x509.Certificate) (*tls.Certificate, error) {
+func (f *Forgery) Forge(serverCert *x509.Certificate) (*tls.Certificate, error) {
 	template := &x509.Certificate{
 		SerialNumber:          big.NewInt(mrand.Int63()),
 		Subject:               serverCert.Subject,

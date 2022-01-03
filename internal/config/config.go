@@ -15,6 +15,11 @@ type Config struct {
 			Key  string `yaml:"key"`
 		} `yaml:"forgingRootCa"`
 	} `yaml:"proxy"`
+	Paths struct {
+		Doh     string `yaml:"doh"`
+		Http    string `yaml:"http"`
+		Session string `yaml:"session"`
+	} `yaml:"paths"`
 }
 
 func ReadFile(configFile string) (*Config, error) {
@@ -24,7 +29,7 @@ func ReadFile(configFile string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading config %s: %w", configFile, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	decoder := yaml.NewDecoder(f)
 	err = decoder.Decode(&cfg)

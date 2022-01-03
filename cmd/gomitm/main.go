@@ -3,40 +3,56 @@ package main
 import (
 	"flag"
 	"github.com/qencept/gomitm/internal/config"
-	"github.com/qencept/gomitm/internal/forging"
-	"github.com/qencept/gomitm/internal/proxy"
-	"github.com/qencept/gomitm/internal/trusted"
+	"github.com/qencept/gomitm/pkg/mirror/doh"
+	"github.com/qencept/gomitm/pkg/mirror/http1"
+	"github.com/qencept/gomitm/pkg/mirror/http1dump"
+	"github.com/qencept/gomitm/pkg/mirror/session"
+	"github.com/qencept/gomitm/pkg/mirror/sessiondump"
+	"github.com/qencept/gomitm/pkg/mitm/forgery"
+	"github.com/qencept/gomitm/pkg/mitm/proxy"
+	"github.com/qencept/gomitm/pkg/mitm/trusted"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
 )
 
 func main() {
-	configPath := flag.String("config", "", "Configuration file")
-	flag.Parse()
-
-	logrus.SetLevel(logrus.DebugLevel)
-
-	cfg, err := config.ReadFile(*configPath)
-	if err != nil {
-		logrus.Fatal(err)
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	if err := run(logger); err != nil {
+		logger.Fatal(err)
 	}
+}
 
+func run(l *logrus.Logger) error {
 	rand.Seed(time.Now().UnixNano())
 
-	trustedInstance, err := trusted.New(cfg.Proxy.TrustedRootCaCerts)
+	cfgFile := flag.String("config", "", "Configuration file")
+	flag.Parse()
+
+	c, err := config.ReadFile(*cfgFile)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 
-	forgingInstance, err := forging.New(cfg.Proxy.ForgingRootCa.Cert, cfg.Proxy.ForgingRootCa.Key)
+	t, err := trusted.New(c.Proxy.TrustedRootCaCerts)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 
-	addr := ":" + cfg.Proxy.Port
-	proxyInstance := proxy.New(addr, trustedInstance, forgingInstance)
-	if err := proxyInstance.Run(); err != nil {
-		logrus.Fatal(err)
+	f, err := forgery.New(c.Proxy.ForgingRootCa.Cert, c.Proxy.ForgingRootCa.Key)
+	if err != nil {
+		return err
 	}
+
+	httpInspectors := []http1.Inspector{http1dump.New(c.Paths.Http), doh.New(c.Paths.Doh)}
+	sessionInspectors := []session.Inspector{sessiondump.New(c.Paths.Session), http1.New(l, httpInspectors...)}
+	s := session.New(l, sessionInspectors...)
+
+	a := ":" + c.Proxy.Port
+	if err = proxy.New(a, t, f, l, s).Run(); err != nil {
+		return err
+	}
+
+	return nil
 }
