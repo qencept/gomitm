@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"github.com/qencept/gomitm/pkg/mitm/destination"
 	"github.com/qencept/gomitm/pkg/mitm/forgery"
-	"github.com/qencept/gomitm/pkg/mitm/shuttle"
 	"github.com/qencept/gomitm/pkg/mitm/trusted"
+	"github.com/qencept/gomitm/pkg/shuttle"
 	"github.com/sirupsen/logrus"
 	"net"
 )
 
 type Proxy struct {
-	trusted *trusted.Trusted
-	forgery *forgery.Forgery
-	shuttle shuttle.Shuttle
-	addr    string
+	logger *logrus.Logger
+	attack *Attack
+	addr   string
 }
 
-func New(addr string, trusted *trusted.Trusted, forgery *forgery.Forgery, shuttle shuttle.Shuttle) *Proxy {
-	return &Proxy{trusted: trusted, forgery: forgery, addr: addr, shuttle: shuttle}
+func New(addr string, trusted *trusted.Trusted, forgery *forgery.Forgery, logger *logrus.Logger, shuttle shuttle.Shuttle) *Proxy {
+	attack := &Attack{logger: logger, trusted: trusted, forgery: forgery, shuttle: shuttle}
+	return &Proxy{logger: logger, attack: attack, addr: addr}
 }
 
 func (p *Proxy) Run() error {
@@ -31,6 +31,7 @@ func (p *Proxy) Run() error {
 	if err != nil {
 		return fmt.Errorf("listening: %w", err)
 	}
+	p.logger.Infof("Listening %v \n", tcpAddr)
 
 	for {
 		tcpClientConn, err := listener.AcceptTCP()
@@ -38,7 +39,7 @@ func (p *Proxy) Run() error {
 			return fmt.Errorf("accepting: %w", err)
 		}
 		go func() {
-			defer tcpClientConn.Close()
+			defer func() { _ = tcpClientConn.Close() }()
 			p.Handle(tcpClientConn)
 		}()
 	}
@@ -47,16 +48,16 @@ func (p *Proxy) Run() error {
 func (p *Proxy) Handle(tcpClientConn *net.TCPConn) {
 	serverAddr, err := destination.Detect(tcpClientConn)
 	if err != nil {
-		logrus.Warnln("Destination detect:", err)
+		p.logger.Warnln("Destination detect:", err)
 		return
 	}
 
 	tcpServerConn, err := net.DialTCP("tcp", nil, serverAddr)
 	if err != nil {
-		logrus.Warnln("Dial Server:", err)
+		p.logger.Warnln("Dial Server:", err)
 		return
 	}
-	defer tcpServerConn.Close()
+	defer func() { _ = tcpServerConn.Close() }()
 
-	Mitm(tcpClientConn, tcpServerConn, p.trusted, p.forgery, p.shuttle)
+	p.attack.Run(tcpClientConn, tcpServerConn)
 }

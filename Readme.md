@@ -16,20 +16,23 @@ Verified on GOOS/GOARCH:
 - darwin/amd64 (Intel Core i5)
 - darwin/arm64 (Apple Silicon M1)
 
-Start Demo (terminal 1):
+###### Demo
+
+[terminal1] Start (generate certs, configure NAT, run proxy)
 ```bash
 cd examples/demo
 sh start_macos.sh # or linux
 ```
 
-Simulate Client (terminal 2):
+[terminal2] Simulate Client (initiate HTTP, HTTP(S), DoH)
 ```bash
 cd examples/demo
 sh client.sh
 ```
 
-Finish Demo (terminal 1):
+[terminal1] Finish (reset NAT to default):
 ```bash
 ^C
 sh finish_macos.sh # or linux
 ```
+Dumps can be found in dirs "doh", "http", "session".

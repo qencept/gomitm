@@ -1,52 +1,59 @@
 package doh
 
 import (
-	"bytes"
-	"crypto/tls"
 	"fmt"
-	"github.com/qencept/gomitm/pkg/mirror/http"
-	"github.com/qencept/gomitm/pkg/mitm/shuttle"
+	"github.com/qencept/gomitm/pkg/mirror/http1"
+	"github.com/qencept/gomitm/pkg/mirror/persistence"
 	"golang.org/x/net/dns/dnsmessage"
-	"net/http"
-	"os"
-	"strconv"
-	"time"
+	"net"
 )
 
 type Doh struct {
-	dir string
+	path string
 }
 
-func NewDoh(dir string) httpi.Inspector {
-	return &Doh{dir: dir}
+func New(path string) http1.Inspector {
+	return &Doh{path: path}
 }
 
-func (d *Doh) Inspect(req *http.Request, resp *http.Response, session *shuttle.Session) {
-	sni := ""
-	if conn, ok := session.Server.(*tls.Conn); ok {
-		sni = conn.ConnectionState().ServerName
-	}
-	ts := strconv.Itoa(int(time.Now().Unix()))
+func (d *Doh) Inspect(params *http1.Parameters) error {
+	msg := dnsmessage.Message{}
 
-	buf, msg := bytes.Buffer{}, dnsmessage.Message{}
-	buf.ReadFrom(req.Body)
-	err := msg.Unpack(buf.Bytes())
-	if err == nil {
-		c2s, _ := os.Create(d.dir + "/" + ts + "[" + sni + "]" + session.Client.RemoteAddr().String() + "->" + session.Server.RemoteAddr().String())
-		defer c2s.Close()
+	if msg.Unpack(params.ReqBytes) == nil {
+		c2s, err := persistence.CreateFile(persistence.CliSer, d.path, params.SessionParams)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c2s.Close() }()
 		for _, q := range msg.Questions {
-			fmt.Fprintln(c2s, q)
+			_, err = fmt.Fprintln(c2s, q.Name, q.Type)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	buf.Reset()
-	buf.ReadFrom(resp.Body)
-	err = msg.Unpack(buf.Bytes())
-	if err == nil {
-		s2c, _ := os.Create(d.dir + "/" + ts + "[" + sni + "]" + session.Client.RemoteAddr().String() + "<-" + session.Server.RemoteAddr().String())
-		defer s2c.Close()
+	if msg.Unpack(params.RespBytes) == nil {
+		s2c, err := persistence.CreateFile(persistence.SerCli, d.path, params.SessionParams)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = s2c.Close() }()
 		for _, a := range msg.Answers {
-			fmt.Fprintln(s2c, a.Header.Name, a.Header.Type, a.Body)
+			var str string
+			switch b := a.Body.(type) {
+			case *dnsmessage.AResource:
+				str = net.IPv4(b.A[0], b.A[1], b.A[2], b.A[3]).String()
+			case *dnsmessage.CNAMEResource:
+				str = b.CNAME.String()
+			default:
+				str = b.GoString()
+			}
+			_, err = fmt.Fprintln(s2c, a.Header.Name, a.Header.Type, str)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

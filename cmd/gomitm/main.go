@@ -4,11 +4,12 @@ import (
 	"flag"
 	"github.com/qencept/gomitm/internal/config"
 	"github.com/qencept/gomitm/pkg/mirror/doh"
-	"github.com/qencept/gomitm/pkg/mirror/http"
+	"github.com/qencept/gomitm/pkg/mirror/http1"
+	"github.com/qencept/gomitm/pkg/mirror/http1dump"
 	"github.com/qencept/gomitm/pkg/mirror/session"
+	"github.com/qencept/gomitm/pkg/mirror/sessiondump"
 	"github.com/qencept/gomitm/pkg/mitm/forgery"
 	"github.com/qencept/gomitm/pkg/mitm/proxy"
-	"github.com/qencept/gomitm/pkg/mitm/shuttle"
 	"github.com/qencept/gomitm/pkg/mitm/trusted"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -16,13 +17,14 @@ import (
 )
 
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
-	if err := run(); err != nil {
-		logrus.Fatal(err)
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	if err := run(logger); err != nil {
+		logger.Fatal(err)
 	}
 }
 
-func run() error {
+func run(l *logrus.Logger) error {
 	rand.Seed(time.Now().UnixNano())
 
 	cfgFile := flag.String("config", "", "Configuration file")
@@ -43,16 +45,14 @@ func run() error {
 		return err
 	}
 
-	addr := ":" + c.Proxy.Port
-	if err := proxy.New(addr, t, f, setInspectors()).Run(); err != nil {
+	httpInspectors := []http1.Inspector{http1dump.New(c.Paths.Http), doh.New(c.Paths.Doh)}
+	sessionInspectors := []session.Inspector{sessiondump.New(c.Paths.Session), http1.New(l, httpInspectors...)}
+	s := session.New(l, sessionInspectors...)
+
+	a := ":" + c.Proxy.Port
+	if err = proxy.New(a, t, f, l, s).Run(); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func setInspectors() shuttle.Shuttle {
-	httpInspectors := []httpi.Inspector{httpi.NewDumper("http"), doh.NewDoh("doh")}
-	sessionInspectors := []session.Inspector{session.NewDumper("session"), httpi.NewHttp(httpInspectors...)}
-	return session.New(sessionInspectors...)
 }

@@ -1,10 +1,9 @@
 package session
 
 import (
-	"github.com/qencept/gomitm/pkg/mitm/shuttle"
 	"io"
 )
 
 type Inspector interface {
-	Inspect(session *shuttle.Session) (io.WriteCloser, io.WriteCloser)
+	InitWriteClosers(params *Parameters) (c2s, s2c io.WriteCloser, err error)
 }
