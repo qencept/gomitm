@@ -16,23 +16,28 @@ Verified on GOOS/GOARCH:
 - darwin/amd64 (Intel Core i5)
 - darwin/arm64 (Apple Silicon M1)
 
-###### Demo
+## Demo
 
-[terminal1] Start (generate certs, configure NAT, run proxy)
+Start (generate certs, configure NAT, run proxy)
 ```bash
+[terminal1]
 cd examples/demo
 sh start_macos.sh # or linux
 ```
-
-[terminal2] Simulate Client (initiate HTTP, HTTP(S), DoH)
+ 
+Simulate Client (initiate HTTP, HTTP(S), DoH)
 ```bash
+[terminal2]
 cd examples/demo
 sh client.sh
 ```
 
-[terminal1] Finish (reset NAT to default):
+Finish (reset NAT to default):
 ```bash
+[terminal1]
 ^C
 sh finish_macos.sh # or linux
 ```
-Dumps can be found in dirs "doh", "http", "session".
+Note:
+- Dumps can be found in dirs "doh", "http", "session".
+- Still runs at root, since Macos requires privileges to access "/dev/pf"
