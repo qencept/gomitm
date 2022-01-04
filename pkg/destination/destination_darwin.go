@@ -37,7 +37,7 @@ func Detect(c *net.TCPConn) (*net.TCPAddr, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	fd := f.Fd()
 	nl := pfiocNatlook{}
 	if ra.IP.To4() != nil {
