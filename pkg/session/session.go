@@ -1,25 +1,31 @@
 package session
 
 import (
+	"github.com/qencept/gomitm/pkg/backup"
+	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/shuttler"
-	"io"
 )
 
 type Session struct {
+	logger    logger.Logger
+	modifiers []Modifier
+}
+
+func New(l logger.Logger, modifiers ...Modifier) shuttler.Shuttler {
+	return &Session{
+		logger:    l,
+		modifiers: append(modifiers, NewDefault(l)),
+	}
 }
 
 func (s *Session) Shuttle(client, server shuttler.Connection) {
-	done := make(chan struct{})
-	go func() {
-		io.Copy(server, client)
-		server.CloseWrite()
-		done <- struct{}{}
-	}()
-	io.Copy(client, server)
-	client.CloseWrite()
-	<-done
-}
-
-func New() shuttler.Shuttler {
-	return &Session{}
+	clientReader := backup.NewReader(client)
+	serverReader := backup.NewReader(server)
+	for _, modifier := range s.modifiers {
+		if modifier.Modify(clientReader, serverReader, client, server) {
+			break
+		}
+		clientReader.Reset()
+		serverReader.Reset()
+	}
 }

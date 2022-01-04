@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/qencept/gomitm/pkg/config"
 	"github.com/qencept/gomitm/pkg/forgery"
+	"github.com/qencept/gomitm/pkg/http1"
 	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/proxy"
 	"github.com/qencept/gomitm/pkg/session"
@@ -39,7 +40,8 @@ func run(l logger.Logger) error {
 	if err != nil {
 		return err
 	}
-	s := session.New()
+
+	s := session.New(l, []session.Modifier{http1.New(l)}...)
 
 	if err = proxy.New(a, t, f, s, l).Run(); err != nil {
 		return err
