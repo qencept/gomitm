@@ -2,6 +2,7 @@ package http1
 
 import (
 	"bufio"
+	"github.com/qencept/gomitm/pkg/backup"
 	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/session"
 	"io"
@@ -10,59 +11,60 @@ import (
 )
 
 type Http1 struct {
-	logger    logger.Logger
-	modifiers []Modifier
+	logger   logger.Logger
+	mutators []Mutator
 }
 
-func New(l logger.Logger, modifiers ...Modifier) *Http1 {
-	return &Http1{
-		logger:    l,
-		modifiers: append(modifiers, NewDefault(l)),
-	}
+func New(logger logger.Logger, mutators ...Mutator) *Http1 {
+	return &Http1{logger: logger, mutators: mutators}
 }
 
-func (h *Http1) Modify(cr, sr io.Reader, cw, sw session.WriteCloseWriter) bool {
-	req, err := http.ReadRequest(bufio.NewReader(cr))
-	if err != nil {
-		if err != io.EOF {
-		}
+func (h *Http1) MutateForward(w io.Writer, r io.Reader) {
+	br := backup.NewReader(r)
+	req, err := http.ReadRequest(bufio.NewReader(br))
+	if err != nil && err != io.EOF {
+		h.logger.Infoln("Http1 parsing failed, fallback to session.dump: ", err)
+		br.Reset()
+		session.NewDefault(h.logger).MutateForward(w, br)
 	}
 	defer func() { _ = req.Body.Close() }()
 
-	for _, modifier := range h.modifiers {
-		if modifier.ModifyRequest(req) {
-			break
-		}
+	for _, mutator := range h.mutators {
+		mutator.MutateRequest(req)
 	}
 
 	request, err := httputil.DumpRequest(req, true)
 	if err != nil {
+		h.logger.Errorln("Http1 Dump Request: ", err)
+		return
 	}
-
-	_, err = sw.Write(request)
-	if err != nil {
+	if _, err = w.Write(request); err != nil {
+		h.logger.Errorln("Http1 Request Write: ", err)
 	}
+}
 
-	resp, err := http.ReadResponse(bufio.NewReader(sr), req)
-	if err != nil {
-		if err != io.EOF {
-		}
+func (h *Http1) MutateBackward(w io.Writer, r io.Reader) {
+	br := backup.NewReader(r)
+	resp, err := http.ReadResponse(bufio.NewReader(r), nil)
+	if err != nil && err != io.EOF {
+		h.logger.Infoln("Http1 parsing failed, fallback to session.dump: ", err)
+		br.Reset()
+		session.NewDefault(h.logger).MutateForward(w, br)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	for _, modifier := range h.modifiers {
-		if modifier.ModifyResponse(resp) {
-			break
-		}
+	for _, mutator := range h.mutators {
+		mutator.MutateResponse(resp)
 	}
 
 	response, err := httputil.DumpResponse(resp, true)
 	if err != nil {
+		h.logger.Errorln("Http1 Dump Response: ", err)
+		return
 	}
-
-	_, err = cw.Write(response)
-	if err != nil {
+	if _, err = w.Write(response); err != nil {
+		h.logger.Errorln("Http1 Response Write: ", err)
 	}
-
-	return true
 }
+
+var _ session.Mutator = (*Http1)(nil)

@@ -5,31 +5,24 @@ import (
 	"io"
 )
 
-type defaultModifier struct {
+type defaultMutator struct {
 	logger logger.Logger
 }
 
-func NewDefault(l logger.Logger) *defaultModifier {
-	return &defaultModifier{logger: l}
+func NewDefault(logger logger.Logger) *defaultMutator {
+	return &defaultMutator{logger: logger}
 }
 
-func (d *defaultModifier) Modify(cr, sr io.Reader, cw, sw WriteCloseWriter) bool {
-	done := make(chan struct{})
-	go func() {
-		defer func() { done <- struct{}{} }()
-		if _, err := io.Copy(sw, cr); err != nil {
-			d.logger.Warnln("defaultModifier: ", err)
-		}
-		if err := sw.CloseWrite(); err != nil {
-			d.logger.Warnln("defaultModifier: ", err)
-		}
-	}()
-	if _, err := io.Copy(cw, sr); err != nil {
-		d.logger.Warnln("defaultModifier: ", err)
+func (d *defaultMutator) MutateForward(w io.Writer, r io.Reader) {
+	if _, err := io.Copy(w, r); err != nil {
+		d.logger.Warnln("defaultMutator.MutateForward: ", err)
 	}
-	if err := cw.CloseWrite(); err != nil {
-		d.logger.Warnln("defaultModifier: ", err)
-	}
-	<-done
-	return true
 }
+
+func (d *defaultMutator) MutateBackward(w io.Writer, r io.Reader) {
+	if _, err := io.Copy(w, r); err != nil {
+		d.logger.Warnln("defaultMutator.MutateBackward: ", err)
+	}
+}
+
+var _ Mutator = (*defaultMutator)(nil)

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/qencept/gomitm/pkg/config"
+	"github.com/qencept/gomitm/pkg/doh"
 	"github.com/qencept/gomitm/pkg/forgery"
 	"github.com/qencept/gomitm/pkg/http1"
 	"github.com/qencept/gomitm/pkg/logger"
@@ -41,7 +42,10 @@ func run(l logger.Logger) error {
 		return err
 	}
 
-	s := session.New(l, []session.Modifier{http1.New(l)}...)
+	s := session.New(l,
+		[]session.Mutator{http1.New(l,
+			[]http1.Mutator{doh.New(l,
+				[]doh.Mutator{doh.NewDump(l)}...)}...)}...)
 
 	if err = proxy.New(a, t, f, s, l).Run(); err != nil {
 		return err
