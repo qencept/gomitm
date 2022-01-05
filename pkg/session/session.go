@@ -17,6 +17,7 @@ func New(logger logger.Logger, mutators ...Mutator) shuttler.Shuttler {
 }
 
 func (s *Session) Shuttle(client, server shuttler.Connection) {
+	sp := NewParameters(client, server)
 	var wg sync.WaitGroup
 	var fcr, fnr, bcr io.Reader
 	var bcw, fcw, bnw io.Writer
@@ -31,11 +32,11 @@ func (s *Session) Shuttle(client, server shuttler.Connection) {
 		wg.Add(2)
 		go func(m Mutator, w io.Writer, r io.Reader) {
 			defer wg.Done()
-			m.MutateForward(w, r)
+			m.MutateForward(w, r, sp)
 		}(mutator, fcw, fcr)
 		go func(m Mutator, w io.Writer, r io.Reader) {
 			defer wg.Done()
-			m.MutateBackward(w, r)
+			m.MutateBackward(w, r, sp)
 		}(mutator, bcw, bcr)
 		fcr, bcw = fnr, bnw
 	}

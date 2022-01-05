@@ -1,8 +1,11 @@
 package http1
 
-import "net/http"
+import (
+	"github.com/qencept/gomitm/pkg/session"
+	"net/http"
+)
 
 type Mutator interface {
-	MutateRequest(req *http.Request) *http.Request
-	MutateResponse(resp *http.Response) *http.Response
+	MutateRequest(req *http.Request, sp *session.Parameters) *http.Request
+	MutateResponse(resp *http.Response, sp *session.Parameters) *http.Response
 }

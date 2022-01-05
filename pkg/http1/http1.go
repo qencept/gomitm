@@ -19,18 +19,18 @@ func New(logger logger.Logger, mutators ...Mutator) *Http1 {
 	return &Http1{logger: logger, mutators: mutators}
 }
 
-func (h *Http1) MutateForward(w io.Writer, r io.Reader) {
+func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp *session.Parameters) {
 	br := backup.NewReader(r)
 	req, err := http.ReadRequest(bufio.NewReader(br))
 	if err != nil && err != io.EOF {
-		h.logger.Infoln("Http1 parsing failed, fallback to session.dump: ", err)
+		h.logger.Infoln("Http1 parsing failed, fallback to session.storage: ", err)
 		br.Reset()
-		session.NewDefault(h.logger).MutateForward(w, br)
+		session.NewDefault(h.logger).MutateForward(w, br, sp)
 	}
 	defer func() { _ = req.Body.Close() }()
 
 	for _, mutator := range h.mutators {
-		mutator.MutateRequest(req)
+		mutator.MutateRequest(req, sp)
 	}
 
 	request, err := httputil.DumpRequest(req, true)
@@ -43,18 +43,18 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader) {
 	}
 }
 
-func (h *Http1) MutateBackward(w io.Writer, r io.Reader) {
+func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp *session.Parameters) {
 	br := backup.NewReader(r)
 	resp, err := http.ReadResponse(bufio.NewReader(r), nil)
 	if err != nil && err != io.EOF {
-		h.logger.Infoln("Http1 parsing failed, fallback to session.dump: ", err)
+		h.logger.Infoln("Http1 parsing failed, fallback to session.storage: ", err)
 		br.Reset()
-		session.NewDefault(h.logger).MutateForward(w, br)
+		session.NewDefault(h.logger).MutateForward(w, br, sp)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	for _, mutator := range h.mutators {
-		mutator.MutateResponse(resp)
+		mutator.MutateResponse(resp, sp)
 	}
 
 	response, err := httputil.DumpResponse(resp, true)

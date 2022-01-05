@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/qencept/gomitm/pkg/http1"
 	"github.com/qencept/gomitm/pkg/logger"
+	"github.com/qencept/gomitm/pkg/session"
 	"golang.org/x/net/dns/dnsmessage"
 	"io/ioutil"
 	"net/http"
@@ -18,7 +19,7 @@ func New(logger logger.Logger, mutators ...Mutator) *Doh {
 	return &Doh{logger: logger, mutators: mutators}
 }
 
-func (d *Doh) MutateRequest(req *http.Request) *http.Request {
+func (d *Doh) MutateRequest(req *http.Request, sp *session.Parameters) *http.Request {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 	}
@@ -28,7 +29,7 @@ func (d *Doh) MutateRequest(req *http.Request) *http.Request {
 		return req
 	}
 	for _, mutator := range d.mutators {
-		msg.Questions = mutator.MutateQuestion(msg.Questions)
+		msg.Questions = mutator.MutateQuestion(msg.Questions, sp)
 	}
 	pack, err := msg.Pack()
 	if err != nil {
@@ -36,10 +37,11 @@ func (d *Doh) MutateRequest(req *http.Request) *http.Request {
 		return req
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(pack))
+	req.ContentLength = int64(len(pack))
 	return req
 }
 
-func (d *Doh) MutateResponse(resp *http.Response) *http.Response {
+func (d *Doh) MutateResponse(resp *http.Response, sp *session.Parameters) *http.Response {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 	}
@@ -49,7 +51,7 @@ func (d *Doh) MutateResponse(resp *http.Response) *http.Response {
 		return resp
 	}
 	for _, mutator := range d.mutators {
-		msg.Answers = mutator.MutateAnswer(msg.Answers)
+		msg.Answers = mutator.MutateAnswer(msg.Answers, sp)
 	}
 	pack, err := msg.Pack()
 	if err != nil {
@@ -57,6 +59,7 @@ func (d *Doh) MutateResponse(resp *http.Response) *http.Response {
 		return resp
 	}
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(pack))
+	resp.ContentLength = int64(len(pack))
 	return resp
 }
 

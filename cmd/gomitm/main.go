@@ -42,10 +42,10 @@ func run(l logger.Logger) error {
 		return err
 	}
 
-	s := session.New(l,
-		[]session.Mutator{http1.New(l,
-			[]http1.Mutator{doh.New(l,
-				[]doh.Mutator{doh.NewDump(l)}...)}...)}...)
+	dohMutators := []doh.Mutator{NewApp(), doh.NewDump(l, cfg.Paths.Doh)}
+	http1Mutators := []http1.Mutator{doh.New(l, dohMutators...), http1.NewDump(l, cfg.Paths.Http)}
+	sessionMutators := []session.Mutator{http1.New(l, http1Mutators...)}
+	s := session.New(l, sessionMutators...)
 
 	if err = proxy.New(a, t, f, s, l).Run(); err != nil {
 		return err

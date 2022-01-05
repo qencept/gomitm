@@ -13,13 +13,13 @@ func NewDefault(logger logger.Logger) *defaultMutator {
 	return &defaultMutator{logger: logger}
 }
 
-func (d *defaultMutator) MutateForward(w io.Writer, r io.Reader) {
+func (d *defaultMutator) MutateForward(w io.Writer, r io.Reader, _ *Parameters) {
 	if _, err := io.Copy(w, r); err != nil {
 		d.logger.Warnln("defaultMutator.MutateForward: ", err)
 	}
 }
 
-func (d *defaultMutator) MutateBackward(w io.Writer, r io.Reader) {
+func (d *defaultMutator) MutateBackward(w io.Writer, r io.Reader, _ *Parameters) {
 	if _, err := io.Copy(w, r); err != nil {
 		d.logger.Warnln("defaultMutator.MutateBackward: ", err)
 	}
