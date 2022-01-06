@@ -39,5 +39,4 @@ Finish (reset NAT to default):
 sh finish_macos.sh # or linux
 ```
 Note:
-- Dumps can be found in dirs "doh", "http", "session".
 - Still runs at root, since Macos requires privileges to access "/dev/pf"

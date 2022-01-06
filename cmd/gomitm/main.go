@@ -2,55 +2,52 @@ package main
 
 import (
 	"flag"
-	"github.com/qencept/gomitm/internal/config"
-	"github.com/qencept/gomitm/pkg/mirror/doh"
-	"github.com/qencept/gomitm/pkg/mirror/http1"
-	"github.com/qencept/gomitm/pkg/mirror/http1dump"
-	"github.com/qencept/gomitm/pkg/mirror/session"
-	"github.com/qencept/gomitm/pkg/mirror/sessiondump"
-	"github.com/qencept/gomitm/pkg/mitm/forgery"
-	"github.com/qencept/gomitm/pkg/mitm/proxy"
-	"github.com/qencept/gomitm/pkg/mitm/trusted"
+	"github.com/qencept/gomitm/pkg/config"
+	"github.com/qencept/gomitm/pkg/doh"
+	"github.com/qencept/gomitm/pkg/forgery"
+	"github.com/qencept/gomitm/pkg/http1"
+	"github.com/qencept/gomitm/pkg/logger"
+	"github.com/qencept/gomitm/pkg/proxy"
+	"github.com/qencept/gomitm/pkg/session"
+	"github.com/qencept/gomitm/pkg/trusted"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
 )
 
 func main() {
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
-	if err := run(logger); err != nil {
-		logger.Fatal(err)
+	l := logrus.New()
+	if err := run(l); err != nil {
+		l.Fatal(err)
 	}
 }
 
-func run(l *logrus.Logger) error {
+func run(l logger.Logger) error {
 	rand.Seed(time.Now().UnixNano())
 
 	cfgFile := flag.String("config", "", "Configuration file")
 	flag.Parse()
-
-	c, err := config.ReadFile(*cfgFile)
+	cfg, err := config.ReadFile(*cfgFile)
 	if err != nil {
 		return err
 	}
 
-	t, err := trusted.New(c.Proxy.TrustedRootCaCerts)
+	a := ":" + cfg.Proxy.Port
+	t, err := trusted.New(cfg.Proxy.TrustedRootCaCerts)
+	if err != nil {
+		return err
+	}
+	f, err := forgery.New(cfg.Proxy.ForgingRootCa.Cert, cfg.Proxy.ForgingRootCa.Key)
 	if err != nil {
 		return err
 	}
 
-	f, err := forgery.New(c.Proxy.ForgingRootCa.Cert, c.Proxy.ForgingRootCa.Key)
-	if err != nil {
-		return err
-	}
+	dohMutators := []doh.Mutator{NewApp(), doh.NewDump(l, cfg.Paths.Doh)}
+	http1Mutators := []http1.Mutator{doh.New(l, dohMutators...), http1.NewDump(l, cfg.Paths.Http)}
+	sessionMutators := []session.Mutator{http1.New(l, http1Mutators...)}
+	s := session.New(l, sessionMutators...)
 
-	httpInspectors := []http1.Inspector{http1dump.New(c.Paths.Http), doh.New(c.Paths.Doh)}
-	sessionInspectors := []session.Inspector{sessiondump.New(c.Paths.Session), http1.New(l, httpInspectors...)}
-	s := session.New(l, sessionInspectors...)
-
-	a := ":" + c.Proxy.Port
-	if err = proxy.New(a, t, f, l, s).Run(); err != nil {
+	if err = proxy.New(a, t, f, s, l).Run(); err != nil {
 		return err
 	}
 
