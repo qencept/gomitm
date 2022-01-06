@@ -12,15 +12,15 @@ func NewApp() *App {
 	return &App{}
 }
 
-func (d *App) MutateQuestion(questions []dnsmessage.Question, _ *session.Parameters) []dnsmessage.Question {
+func (d *App) MutateQuestion(questions []dnsmessage.Question, _ session.Parameters) []dnsmessage.Question {
 	return questions
 }
 
-func (d *App) MutateAnswer(answers []dnsmessage.Resource, _ *session.Parameters) []dnsmessage.Resource {
+func (d *App) MutateAnswer(answers []dnsmessage.Resource, _ session.Parameters) []dnsmessage.Resource {
 	for _, a := range answers {
-		if a.Header.Name.String() == "www.google.com." {
+		if a.Header.Name.String() == "www.example.com." {
 			if ar, ok := a.Body.(*dnsmessage.AResource); ok {
-				ar.A = [4]byte{5, 255, 255, 50}
+				ar.A = [4]byte{1, 1, 1, 1}
 			}
 		}
 	}

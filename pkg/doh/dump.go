@@ -18,7 +18,7 @@ func NewDump(logger logger.Logger, path string) *dump {
 	return &dump{logger: logger, path: path}
 }
 
-func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp *session.Parameters) []dnsmessage.Question {
+func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parameters) []dnsmessage.Question {
 	f, err := storage.New(session.Forward, d.path, sp)
 	if err != nil {
 	}
@@ -30,7 +30,7 @@ func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp *session.Param
 	return questions
 }
 
-func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp *session.Parameters) []dnsmessage.Resource {
+func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters) []dnsmessage.Resource {
 	f, err := storage.New(session.Backward, d.path, sp)
 	if err != nil {
 	}

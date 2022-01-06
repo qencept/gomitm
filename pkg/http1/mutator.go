@@ -6,6 +6,6 @@ import (
 )
 
 type Mutator interface {
-	MutateRequest(req *http.Request, sp *session.Parameters) *http.Request
-	MutateResponse(resp *http.Response, sp *session.Parameters) *http.Response
+	MutateRequest(req *http.Request, sp session.Parameters) *http.Request
+	MutateResponse(resp *http.Response, sp session.Parameters) *http.Response
 }

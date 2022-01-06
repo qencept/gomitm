@@ -3,7 +3,6 @@ package session
 import (
 	"crypto/tls"
 	"github.com/qencept/gomitm/pkg/shuttler"
-	"net"
 )
 
 const (
@@ -12,8 +11,8 @@ const (
 )
 
 type Parameters struct {
-	Client net.Addr
-	Server net.Addr
+	Client string
+	Server string
 	Sni    string
 }
 
@@ -23,8 +22,8 @@ func NewParameters(client, server shuttler.Connection) *Parameters {
 		sni = conn.ConnectionState().ServerName
 	}
 	return &Parameters{
-		Client: client.RemoteAddr(),
-		Server: server.RemoteAddr(),
+		Client: client.RemoteAddr().String(),
+		Server: server.RemoteAddr().String(),
 		Sni:    sni,
 	}
 }

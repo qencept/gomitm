@@ -30,14 +30,14 @@ func (s *Session) Shuttle(client, server shuttler.Connection) {
 			bcr, bnw = io.Pipe()
 		}
 		wg.Add(2)
-		go func(m Mutator, w io.Writer, r io.Reader) {
+		go func(m Mutator, w io.Writer, r io.Reader, sp Parameters) {
 			defer wg.Done()
 			m.MutateForward(w, r, sp)
-		}(mutator, fcw, fcr)
-		go func(m Mutator, w io.Writer, r io.Reader) {
+		}(mutator, fcw, fcr, *sp)
+		go func(m Mutator, w io.Writer, r io.Reader, sp Parameters) {
 			defer wg.Done()
 			m.MutateBackward(w, r, sp)
-		}(mutator, bcw, bcr)
+		}(mutator, bcw, bcr, *sp)
 		fcr, bcw = fnr, bnw
 	}
 	wg.Wait()

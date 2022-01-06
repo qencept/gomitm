@@ -6,6 +6,6 @@ import (
 )
 
 type Mutator interface {
-	MutateQuestion(questions []dnsmessage.Question, sp *session.Parameters) []dnsmessage.Question
-	MutateAnswer(answers []dnsmessage.Resource, sp *session.Parameters) []dnsmessage.Resource
+	MutateQuestion(questions []dnsmessage.Question, sp session.Parameters) []dnsmessage.Question
+	MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters) []dnsmessage.Resource
 }

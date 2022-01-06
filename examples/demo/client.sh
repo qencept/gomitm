@@ -6,5 +6,5 @@ if [ -x "$(command -v curl)" ]; then
 fi
 
 if [ -x "$(command -v dog)" ]; then
-  dog --https @https://dns.google/dns-query www.youtube.com > 3
+  dog --https @https://doh.dnscrypt.uk/dns-query www.youtube.com > 3
 fi

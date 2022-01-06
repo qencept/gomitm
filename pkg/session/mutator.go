@@ -8,6 +8,6 @@ type WriteCloseWriter interface {
 }
 
 type Mutator interface {
-	MutateForward(w io.Writer, r io.Reader, sp *Parameters)
-	MutateBackward(w io.Writer, r io.Reader, sp *Parameters)
+	MutateForward(w io.Writer, r io.Reader, sp Parameters)
+	MutateBackward(w io.Writer, r io.Reader, sp Parameters)
 }

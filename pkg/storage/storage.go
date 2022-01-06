@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-func fileName(direction int, path, ts string, sp *session.Parameters) string {
-	template := path + "/" + ts + "#" + sp.Client.String() + "%s" + sp.Server.String() + "#" + sp.Sni
+func fileName(direction int, path, ts string, sp session.Parameters) string {
+	template := path + "/" + ts + "#" + sp.Client + "%s" + sp.Server + "#" + sp.Sni
 	switch direction {
 	case session.Forward:
 		return fmt.Sprintf(template, "->")
@@ -21,7 +21,7 @@ func fileName(direction int, path, ts string, sp *session.Parameters) string {
 	}
 }
 
-func New(direction int, path string, sp *session.Parameters) (io.WriteCloser, error) {
+func New(direction int, path string, sp session.Parameters) (io.WriteCloser, error) {
 	ts := strconv.Itoa(int(time.Now().Unix()))
 	name := fileName(direction, path, ts, sp)
 	f, err := os.Create(name)

@@ -19,7 +19,7 @@ func New(logger logger.Logger, mutators ...Mutator) *Doh {
 	return &Doh{logger: logger, mutators: mutators}
 }
 
-func (d *Doh) MutateRequest(req *http.Request, sp *session.Parameters) *http.Request {
+func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Request {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 	}
@@ -41,7 +41,7 @@ func (d *Doh) MutateRequest(req *http.Request, sp *session.Parameters) *http.Req
 	return req
 }
 
-func (d *Doh) MutateResponse(resp *http.Response, sp *session.Parameters) *http.Response {
+func (d *Doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.Response {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 	}
