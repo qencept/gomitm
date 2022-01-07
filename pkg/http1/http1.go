@@ -26,7 +26,7 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 		req, err := http.ReadRequest(bufio.NewReader(br))
 		if err == io.EOF {
 			break
-		} else if err != nil || req.Method == "PRI" {
+		} else if err != nil {
 			br.Reset()
 			h.copy.MutateForward(w, br, sp)
 			return
@@ -34,18 +34,23 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 		defer func(req *http.Request) {
 			_ = req.Body.Close()
 		}(req)
-
+		// this is HTTP/2?
+		if req.Method == "PRI" {
+			br.Reset()
+			h.copy.MutateForward(w, br, sp)
+			return
+		}
 		for _, mutator := range h.mutators {
 			req = mutator.MutateRequest(req, sp)
 		}
-
 		request, err := httputil.DumpRequest(req, true)
 		if err != nil {
-			h.logger.Warnln("Http1 Dump Request: ", err)
+			h.logger.Warnln("Http1 req serialization: ", err)
 			return
 		}
 		if _, err = w.Write(request); err != nil {
-			h.logger.Warnln("Http1 Request Write: ", err)
+			h.logger.Warnln("Http1 req writing: ", err)
+			return
 		}
 	}
 }
@@ -57,25 +62,28 @@ func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) 
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			br.Reset()
-			h.copy.MutateBackward(w, br, sp)
+			if err == io.ErrUnexpectedEOF {
+				h.logger.Warnln("MutateBackward workarounds io.ErrUnexpectedEOF")
+			} else {
+				br.Reset()
+				h.copy.MutateBackward(w, br, sp)
+			}
 			return
 		}
 		defer func(resp *http.Response) {
 			_ = resp.Body.Close()
 		}(resp)
-
 		for _, mutator := range h.mutators {
 			resp = mutator.MutateResponse(resp, sp)
 		}
-
 		response, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			h.logger.Warnln("Http1 Dump Response: ", err)
+			h.logger.Warnln("Http1 resp serialization: ", err)
 			return
 		}
 		if _, err = w.Write(response); err != nil {
-			h.logger.Warnln("Http1 Response Write: ", err)
+			h.logger.Warnln("Http1 resp writing: ", err)
+			return
 		}
 	}
 }

@@ -24,9 +24,9 @@ func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Requ
 	if err != nil {
 		d.logger.Errorln("Doh body reading: ", err)
 	}
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	msg := dnsmessage.Message{}
 	if err = msg.Unpack(body); err != nil {
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 		return req
 	}
 	for _, mutator := range d.mutators {

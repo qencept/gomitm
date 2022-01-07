@@ -30,10 +30,13 @@ func (m *Mitm) Run(tcpOrigClient, tcpOrigServer shuttler.Connection) {
 		return
 	}
 
+	minVersion, maxVersion := minmax(clientHelloInfo.SupportedVersions)
 	tlsOrigServer := tls.Client(tcpOrigServer, &tls.Config{
 		ServerName: clientHelloInfo.ServerName,
 		NextProtos: clientHelloInfo.SupportedProtos,
 		RootCAs:    m.trusted.CertPool(),
+		MinVersion: minVersion,
+		MaxVersion: maxVersion,
 	})
 	defer func() {
 		_ = tlsOrigServer.Close()
@@ -52,6 +55,8 @@ func (m *Mitm) Run(tcpOrigClient, tcpOrigServer shuttler.Connection) {
 			return m.forgery.Forge(tlsOrigServer.ConnectionState().PeerCertificates[0])
 		},
 		NextProtos: []string{tlsOrigServer.ConnectionState().NegotiatedProtocol},
+		MinVersion: tlsOrigServer.ConnectionState().Version,
+		MaxVersion: tlsOrigServer.ConnectionState().Version,
 	})
 	defer func() {
 		_ = tlsOrigClient.Close()
@@ -72,4 +77,19 @@ func (m *Mitm) Run(tcpOrigClient, tcpOrigServer shuttler.Connection) {
 		tlsOrigServer.ConnectionState().NegotiatedProtocol,
 		clientHelloInfo.ServerName))
 	m.shuttler.Shuttle(tlsOrigClient, tlsOrigServer)
+}
+
+func minmax(supported []uint16) (uint16, uint16) {
+	min, max := supported[0], supported[0]
+	for _, s := range supported {
+		if s >= tls.VersionTLS10 && s <= tls.VersionTLS13 {
+			if s < min {
+				min = s
+			}
+			if s > max {
+				max = s
+			}
+		}
+	}
+	return min, max
 }
