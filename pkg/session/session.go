@@ -13,14 +13,17 @@ type Session struct {
 }
 
 func New(logger logger.Logger, mutators ...Mutator) shuttler.Shuttler {
+	if len(mutators) == 0 {
+		mutators = append(mutators, NewCopy(logger))
+	}
 	return &Session{logger: logger, mutators: mutators}
 }
 
 func (s *Session) Shuttle(client, server shuttler.Connection) {
 	sp := NewParameters(client, server)
-	var wg sync.WaitGroup
+	var fwg, bwg sync.WaitGroup
 	var fcr, fnr, bcr io.Reader
-	var bcw, fcw, bnw io.Writer
+	var bcw, fcw, bnw io.WriteCloser
 	fcr, bcw = client, client
 	for i, mutator := range s.mutators {
 		if i == len(s.mutators)-1 {
@@ -29,24 +32,34 @@ func (s *Session) Shuttle(client, server shuttler.Connection) {
 			fnr, fcw = io.Pipe()
 			bcr, bnw = io.Pipe()
 		}
-		wg.Add(2)
-		go func(m Mutator, w io.Writer, r io.Reader, sp Parameters) {
-			defer wg.Done()
+		fwg.Add(1)
+		bwg.Add(1)
+		go func(m Mutator, w io.WriteCloser, r io.Reader, sp Parameters) {
+			defer fwg.Done()
+			defer func() {
+				if w == server {
+					_ = server.CloseWrite()
+				} else {
+					_ = w.Close()
+				}
+			}()
 			m.MutateForward(w, r, sp)
 		}(mutator, fcw, fcr, *sp)
-		go func(m Mutator, w io.Writer, r io.Reader, sp Parameters) {
-			defer wg.Done()
+		go func(m Mutator, w io.WriteCloser, r io.Reader, sp Parameters) {
+			defer bwg.Done()
+			defer func() {
+				if w == client {
+					_ = client.CloseWrite()
+				} else {
+					_ = w.Close()
+				}
+			}()
 			m.MutateBackward(w, r, sp)
 		}(mutator, bcw, bcr, *sp)
 		fcr, bcw = fnr, bnw
 	}
-	wg.Wait()
-	if err := server.CloseWrite(); err != nil {
-		s.logger.Warnln("server.CloseWrite: ", err)
-	}
-	if err := client.CloseWrite(); err != nil {
-		s.logger.Warnln("client.CloseWrite: ", err)
-	}
+	fwg.Wait()
+	bwg.Wait()
 }
 
 var _ shuttler.Shuttler = (*Session)(nil)

@@ -32,7 +32,7 @@ func (m *Mitm) Run(tcpOrigClient, tcpOrigServer shuttler.Connection) {
 
 	tlsOrigServer := tls.Client(tcpOrigServer, &tls.Config{
 		ServerName: clientHelloInfo.ServerName,
-		NextProtos: h2suppress(clientHelloInfo.SupportedProtos),
+		NextProtos: clientHelloInfo.SupportedProtos,
 		RootCAs:    m.trusted.CertPool(),
 	})
 	defer func() {

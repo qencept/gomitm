@@ -26,7 +26,7 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 		req, err := http.ReadRequest(bufio.NewReader(br))
 		if err == io.EOF {
 			break
-		} else if err != nil {
+		} else if err != nil || req.Method == "PRI" {
 			br.Reset()
 			h.copy.MutateForward(w, br, sp)
 			return
@@ -53,7 +53,7 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) {
 	br := backup.NewReader(r)
 	for {
-		resp, err := http.ReadResponse(bufio.NewReader(r), nil)
+		resp, err := http.ReadResponse(bufio.NewReader(br), nil)
 		if err == io.EOF {
 			break
 		} else if err != nil {
