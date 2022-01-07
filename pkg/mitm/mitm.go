@@ -35,7 +35,9 @@ func (m *Mitm) Run(tcpOrigClient, tcpOrigServer shuttler.Connection) {
 		NextProtos: h2suppress(clientHelloInfo.SupportedProtos),
 		RootCAs:    m.trusted.CertPool(),
 	})
-	defer func() { _ = tlsOrigServer.Close() }()
+	defer func() {
+		_ = tlsOrigServer.Close()
+	}()
 	if err := tlsOrigServer.SetDeadline(time.Now().Add(time.Minute)); err != nil {
 		m.logger.Warnln("Server SetDeadline:", err)
 		return
@@ -51,7 +53,9 @@ func (m *Mitm) Run(tcpOrigClient, tcpOrigServer shuttler.Connection) {
 		},
 		NextProtos: []string{tlsOrigServer.ConnectionState().NegotiatedProtocol},
 	})
-	defer func() { _ = tlsOrigClient.Close() }()
+	defer func() {
+		_ = tlsOrigClient.Close()
+	}()
 	if err := tlsOrigClient.SetDeadline(time.Now().Add(time.Minute)); err != nil {
 		m.logger.Warnln("Client SetDeadline:", err)
 		return

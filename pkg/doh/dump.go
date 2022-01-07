@@ -21,10 +21,16 @@ func NewDump(logger logger.Logger, path string) *dump {
 func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parameters) []dnsmessage.Question {
 	f, err := storage.New(session.Forward, d.path, sp)
 	if err != nil {
+		d.logger.Errorln("Doh new dump: ", err)
+		return questions
 	}
-	defer func() { _ = f.Close() }()
+	defer func() {
+		_ = f.Close()
+	}()
 	for _, q := range questions {
 		if _, err = fmt.Fprintln(f, q.Name, q.Type); err != nil {
+			d.logger.Errorln("Doh dumping: ", err)
+			return questions
 		}
 	}
 	return questions
@@ -33,6 +39,8 @@ func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parame
 func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters) []dnsmessage.Resource {
 	f, err := storage.New(session.Backward, d.path, sp)
 	if err != nil {
+		d.logger.Errorln("Doh new dump: ", err)
+		return answers
 	}
 	defer func() { _ = f.Close() }()
 	for _, a := range answers {
@@ -46,6 +54,8 @@ func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters
 			str = b.GoString()
 		}
 		if _, err = fmt.Fprintln(f, a.Header.Name, a.Header.Type, str); err != nil {
+			d.logger.Errorln("Doh dumping: ", err)
+			return answers
 		}
 	}
 	return answers

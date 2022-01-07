@@ -13,4 +13,5 @@ fi
 sudo iptables -t nat -A OUTPUT -p tcp -m owner ! --uid-owner root --dport 80 -j REDIRECT --to-port 8888
 sudo iptables -t nat -A OUTPUT -p tcp -m owner ! --uid-owner root --dport 443 -j REDIRECT --to-port 8888
 
+ulimit -n 65536
 sudo go run ../../cmd/gomitm --config config.yaml

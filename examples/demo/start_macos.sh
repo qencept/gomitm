@@ -13,4 +13,5 @@ fi
 sudo sysctl -w net.inet.ip.forwarding=1
 sudo pfctl -ef pf.conf
 
+ulimit -n 65536
 sudo go run ../../cmd/gomitm --config config.yaml

@@ -22,6 +22,7 @@ func New(logger logger.Logger, mutators ...Mutator) *Doh {
 func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Request {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
+		d.logger.Errorln("Doh body reading: ", err)
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	msg := dnsmessage.Message{}
@@ -44,6 +45,8 @@ func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Requ
 func (d *Doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.Response {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		d.logger.Errorln("Doh body reading: ", err)
+		return resp
 	}
 	msg := dnsmessage.Message{}
 	if err = msg.Unpack(body); err != nil {

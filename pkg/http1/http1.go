@@ -27,7 +27,6 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			h.logger.Infoln("Http1 parsing failed, fallback to session.storage: ", err)
 			br.Reset()
 			h.copy.MutateForward(w, br, sp)
 			return
@@ -42,11 +41,11 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 
 		request, err := httputil.DumpRequest(req, true)
 		if err != nil {
-			h.logger.Errorln("Http1 Dump Request: ", err)
+			h.logger.Warnln("Http1 Dump Request: ", err)
 			return
 		}
 		if _, err = w.Write(request); err != nil {
-			h.logger.Errorln("Http1 Request Write: ", err)
+			h.logger.Warnln("Http1 Request Write: ", err)
 		}
 	}
 }
@@ -58,7 +57,6 @@ func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) 
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			h.logger.Infoln("Http1 parsing failed, fallback to session.storage: ", err)
 			br.Reset()
 			h.copy.MutateBackward(w, br, sp)
 			return
@@ -73,11 +71,11 @@ func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) 
 
 		response, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			h.logger.Errorln("Http1 Dump Response: ", err)
+			h.logger.Warnln("Http1 Dump Response: ", err)
 			return
 		}
 		if _, err = w.Write(response); err != nil {
-			h.logger.Errorln("Http1 Response Write: ", err)
+			h.logger.Warnln("Http1 Response Write: ", err)
 		}
 	}
 }
