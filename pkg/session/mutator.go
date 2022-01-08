@@ -1,6 +1,9 @@
 package session
 
-import "io"
+import (
+	"github.com/qencept/gomitm/pkg/storage"
+	"io"
+)
 
 type WriteCloseWriter interface {
 	io.Writer
@@ -8,6 +11,6 @@ type WriteCloseWriter interface {
 }
 
 type Mutator interface {
-	MutateForward(w io.Writer, r io.Reader, sp Parameters)
-	MutateBackward(w io.Writer, r io.Reader, sp Parameters)
+	MutateForward(w io.Writer, r io.Reader, sp storage.Parameters)
+	MutateBackward(w io.Writer, r io.Reader, sp storage.Parameters)
 }

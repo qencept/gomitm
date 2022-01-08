@@ -44,7 +44,7 @@ func run(l logger.Logger) error {
 
 	dohMutators := []doh.Mutator{NewApp(), doh.NewDump(l, cfg.Paths.Doh)}
 	http1Mutators := []http1.Mutator{doh.New(l, dohMutators...), http1.NewDump(l, cfg.Paths.Http)}
-	sessionMutators := []session.Mutator{http1.New(l, http1Mutators...)}
+	sessionMutators := []session.Mutator{http1.New(l, http1Mutators...), session.NewDump(l, cfg.Paths.Session)}
 	s := session.New(l, sessionMutators...)
 
 	if err = proxy.New(a, t, f, s, l).Run(); err != nil {

@@ -3,6 +3,7 @@ package session
 import (
 	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/shuttler"
+	"github.com/qencept/gomitm/pkg/storage"
 	"io"
 	"sync"
 )
@@ -20,7 +21,7 @@ func New(logger logger.Logger, mutators ...Mutator) shuttler.Shuttler {
 }
 
 func (s *Session) Shuttle(client, server shuttler.Connection) {
-	sp := NewParameters(client, server)
+	sp := storage.NewParameters(client, server)
 	var fwg, bwg sync.WaitGroup
 	var fcr, fnr, bcr io.Reader
 	var bcw, fcw, bnw io.WriteCloser
@@ -34,7 +35,7 @@ func (s *Session) Shuttle(client, server shuttler.Connection) {
 		}
 		fwg.Add(1)
 		bwg.Add(1)
-		go func(m Mutator, w io.WriteCloser, r io.Reader, sp Parameters) {
+		go func(m Mutator, w io.WriteCloser, r io.Reader, sp storage.Parameters) {
 			defer fwg.Done()
 			defer func() {
 				if w == server {
@@ -45,7 +46,7 @@ func (s *Session) Shuttle(client, server shuttler.Connection) {
 			}()
 			m.MutateForward(w, r, sp)
 		}(mutator, fcw, fcr, *sp)
-		go func(m Mutator, w io.WriteCloser, r io.Reader, sp Parameters) {
+		go func(m Mutator, w io.WriteCloser, r io.Reader, sp storage.Parameters) {
 			defer bwg.Done()
 			defer func() {
 				if w == client {

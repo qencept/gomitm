@@ -3,7 +3,6 @@ package doh
 import (
 	"fmt"
 	"github.com/qencept/gomitm/pkg/logger"
-	"github.com/qencept/gomitm/pkg/session"
 	"github.com/qencept/gomitm/pkg/storage"
 	"golang.org/x/net/dns/dnsmessage"
 	"net"
@@ -18,8 +17,8 @@ func NewDump(logger logger.Logger, path string) *dump {
 	return &dump{logger: logger, path: path}
 }
 
-func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parameters) []dnsmessage.Question {
-	f, err := storage.New(session.Forward, d.path, sp)
+func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp storage.Parameters) []dnsmessage.Question {
+	f, err := storage.New(storage.Forward, d.path, sp)
 	if err != nil {
 		d.logger.Errorln("Doh new dump: ", err)
 		return questions
@@ -36,8 +35,8 @@ func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parame
 	return questions
 }
 
-func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters) []dnsmessage.Resource {
-	f, err := storage.New(session.Backward, d.path, sp)
+func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp storage.Parameters) []dnsmessage.Resource {
+	f, err := storage.New(storage.Backward, d.path, sp)
 	if err != nil {
 		d.logger.Errorln("Doh new dump: ", err)
 		return answers

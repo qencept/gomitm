@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/qencept/gomitm/pkg/session"
+	"github.com/qencept/gomitm/pkg/storage"
 	"golang.org/x/net/dns/dnsmessage"
 )
 
@@ -12,11 +12,11 @@ func NewApp() *App {
 	return &App{}
 }
 
-func (d *App) MutateQuestion(questions []dnsmessage.Question, _ session.Parameters) []dnsmessage.Question {
+func (d *App) MutateQuestion(questions []dnsmessage.Question, _ storage.Parameters) []dnsmessage.Question {
 	return questions
 }
 
-func (d *App) MutateAnswer(answers []dnsmessage.Resource, _ session.Parameters) []dnsmessage.Resource {
+func (d *App) MutateAnswer(answers []dnsmessage.Resource, _ storage.Parameters) []dnsmessage.Resource {
 	for _, a := range answers {
 		if a.Header.Name.String() == "www.example.com." {
 			if ar, ok := a.Body.(*dnsmessage.AResource); ok {

@@ -1,4 +1,4 @@
-package session
+package storage
 
 import (
 	"crypto/tls"

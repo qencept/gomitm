@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/qencept/gomitm/pkg/http1"
 	"github.com/qencept/gomitm/pkg/logger"
-	"github.com/qencept/gomitm/pkg/session"
+	"github.com/qencept/gomitm/pkg/storage"
 	"golang.org/x/net/dns/dnsmessage"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +19,7 @@ func New(logger logger.Logger, mutators ...Mutator) *Doh {
 	return &Doh{logger: logger, mutators: mutators}
 }
 
-func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Request {
+func (d *Doh) MutateRequest(req *http.Request, sp storage.Parameters) *http.Request {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		d.logger.Errorln("Doh body reading: ", err)
@@ -42,7 +42,7 @@ func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Requ
 	return req
 }
 
-func (d *Doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.Response {
+func (d *Doh) MutateResponse(resp *http.Response, sp storage.Parameters) *http.Response {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		d.logger.Errorln("Doh body reading: ", err)

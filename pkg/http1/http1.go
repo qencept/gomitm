@@ -5,6 +5,7 @@ import (
 	"github.com/qencept/gomitm/pkg/backup"
 	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/session"
+	"github.com/qencept/gomitm/pkg/storage"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -20,7 +21,7 @@ func New(logger logger.Logger, mutators ...Mutator) *Http1 {
 	return &Http1{logger: logger, mutators: mutators, copy: session.NewCopy(logger)}
 }
 
-func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
+func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp storage.Parameters) {
 	br := backup.NewReader(r)
 	for {
 		req, err := http.ReadRequest(bufio.NewReader(br))
@@ -55,7 +56,7 @@ func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 	}
 }
 
-func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) {
+func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp storage.Parameters) {
 	br := backup.NewReader(r)
 	for {
 		resp, err := http.ReadResponse(bufio.NewReader(br), nil)

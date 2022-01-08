@@ -2,26 +2,25 @@ package storage
 
 import (
 	"fmt"
-	"github.com/qencept/gomitm/pkg/session"
 	"io"
 	"os"
 	"strconv"
 	"time"
 )
 
-func fileName(direction int, path, ts string, sp session.Parameters) string {
+func fileName(direction int, path, ts string, sp Parameters) string {
 	template := path + "/" + ts + "#" + sp.Client + "%s" + sp.Server + "#" + sp.Sni
 	switch direction {
-	case session.Forward:
+	case Forward:
 		return fmt.Sprintf(template, "->")
-	case session.Backward:
+	case Backward:
 		return fmt.Sprintf(template, "<-")
 	default:
 		return ""
 	}
 }
 
-func New(direction int, path string, sp session.Parameters) (io.WriteCloser, error) {
+func New(direction int, path string, sp Parameters) (io.WriteCloser, error) {
 	ts := strconv.Itoa(int(time.Now().Unix()))
 	name := fileName(direction, path, ts, sp)
 	f, err := os.Create(name)

@@ -2,7 +2,6 @@ package http1
 
 import (
 	"github.com/qencept/gomitm/pkg/logger"
-	"github.com/qencept/gomitm/pkg/session"
 	"github.com/qencept/gomitm/pkg/storage"
 	"net/http"
 	"net/http/httputil"
@@ -17,8 +16,8 @@ func NewDump(logger logger.Logger, path string) *dump {
 	return &dump{logger: logger, path: path}
 }
 
-func (d *dump) MutateRequest(req *http.Request, sp session.Parameters) *http.Request {
-	f, err := storage.New(session.Forward, d.path, sp)
+func (d *dump) MutateRequest(req *http.Request, sp storage.Parameters) *http.Request {
+	f, err := storage.New(storage.Forward, d.path, sp)
 	if err != nil {
 		d.logger.Errorln("Http1 new dump: ", err)
 		return req
@@ -38,8 +37,8 @@ func (d *dump) MutateRequest(req *http.Request, sp session.Parameters) *http.Req
 	return req
 }
 
-func (d *dump) MutateResponse(resp *http.Response, sp session.Parameters) *http.Response {
-	f, err := storage.New(session.Backward, d.path, sp)
+func (d *dump) MutateResponse(resp *http.Response, sp storage.Parameters) *http.Response {
+	f, err := storage.New(storage.Backward, d.path, sp)
 	if err != nil {
 		d.logger.Errorln("Http1 new dump: ", err)
 		return resp
