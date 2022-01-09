@@ -11,64 +11,90 @@ import (
 	"net/http/httputil"
 )
 
-type Http1 struct {
+type creator struct {
 	logger   logger.Logger
-	copy     session.Mutator
-	mutators []Mutator
+	creators []Creator
 }
 
-func New(logger logger.Logger, mutators ...Mutator) *Http1 {
-	return &Http1{logger: logger, mutators: mutators, copy: copier.New(logger).Create()}
+func New(logger logger.Logger, creators ...Creator) session.Creator {
+	return &creator{logger: logger, creators: creators}
 }
 
-func (h *Http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
+func (c *creator) Create() session.Mutator {
+	var mutators []Mutator
+	for _, http1Creator := range c.creators {
+		mutators = append(mutators, http1Creator.Create())
+	}
+	return &http1{
+		logger:       c.logger,
+		mutators:     mutators,
+		copier:       copier.New(c.logger).Create(),
+		skipResponse: make(chan bool, 1),
+	}
+}
+
+type http1 struct {
+	logger       logger.Logger
+	copier       session.Mutator
+	mutators     []Mutator
+	skipResponse chan bool
+}
+
+func (h *http1) justCopy(w io.Writer, br *backup.Backup, sp session.Parameters) {
+	br.Reset()
+	h.copier.MutateForward(w, br, sp)
+}
+
+func (h *http1) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 	br := backup.NewReader(r)
 	for {
 		req, err := http.ReadRequest(bufio.NewReader(br))
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			br.Reset()
-			h.copy.MutateForward(w, br, sp)
+			h.skipResponse <- true
+			h.logger.Warnln("http1 req read: ", err)
+			h.justCopy(w, br, sp)
 			return
 		}
 		defer func(req *http.Request) {
 			_ = req.Body.Close()
 		}(req)
-		// this is HTTP/2?
-		if req.Method == "PRI" {
-			br.Reset()
-			h.copy.MutateForward(w, br, sp)
+		if req.Proto == "HTTP/2.0" {
+			h.skipResponse <- true
+			h.logger.Debugln("http1 req read: ", "HTTP/2.0")
+			h.justCopy(w, br, sp)
 			return
 		}
+		h.skipResponse <- false
 		for _, mutator := range h.mutators {
 			req = mutator.MutateRequest(req, sp)
 		}
 		request, err := httputil.DumpRequest(req, true)
 		if err != nil {
-			h.logger.Warnln("Http1 req serialization: ", err)
+			h.logger.Warnln("http1 req serialization: ", err)
 			return
 		}
 		if _, err = w.Write(request); err != nil {
-			h.logger.Warnln("Http1 req writing: ", err)
+			h.logger.Warnln("http1 req writing: ", err)
 			return
 		}
 	}
 }
 
-func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) {
+func (h *http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) {
 	br := backup.NewReader(r)
 	for {
+		if <-h.skipResponse {
+			h.justCopy(w, br, sp)
+			return
+		}
 		resp, err := http.ReadResponse(bufio.NewReader(br), nil)
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			if err == io.ErrUnexpectedEOF {
-				h.logger.Warnln("MutateBackward workarounds io.ErrUnexpectedEOF")
-			} else {
-				br.Reset()
-				h.copy.MutateBackward(w, br, sp)
-			}
+			h.logger.Warnln("http1 resp read: ", err)
+			h.justCopy(w, br, sp)
 			return
 		}
 		defer func(resp *http.Response) {
@@ -79,14 +105,14 @@ func (h *Http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) 
 		}
 		response, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			h.logger.Warnln("Http1 resp serialization: ", err)
+			h.logger.Warnln("http1 resp serialization: ", err)
 			return
 		}
 		if _, err = w.Write(response); err != nil {
-			h.logger.Warnln("Http1 resp writing: ", err)
+			h.logger.Warnln("http1 resp writing: ", err)
 			return
 		}
 	}
 }
 
-var _ session.Mutator = (*Http1)(nil)
+var _ session.Mutator = (*http1)(nil)

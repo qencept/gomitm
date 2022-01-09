@@ -5,6 +5,10 @@ import (
 	"net/http"
 )
 
+type Creator interface {
+	Create() Mutator
+}
+
 type Mutator interface {
 	MutateRequest(req *http.Request, sp session.Parameters) *http.Request
 	MutateResponse(resp *http.Response, sp session.Parameters) *http.Response

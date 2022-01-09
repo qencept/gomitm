@@ -28,7 +28,7 @@ type dump struct {
 func (d *dump) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 	f, err := storage.New(session.Forward, d.path, sp)
 	if err != nil {
-		d.logger.Errorln("session.Forward new dump: ", err)
+		d.logger.Warnln("session.Forward new dump: ", err)
 		return
 	}
 	defer func() {
@@ -42,7 +42,7 @@ func (d *dump) MutateForward(w io.Writer, r io.Reader, sp session.Parameters) {
 func (d *dump) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) {
 	f, err := storage.New(session.Backward, d.path, sp)
 	if err != nil {
-		d.logger.Errorln("session.Backward new dump: ", err)
+		d.logger.Warnln("session.Backward new dump: ", err)
 		return
 	}
 	defer func() {
