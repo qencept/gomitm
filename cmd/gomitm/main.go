@@ -4,11 +4,15 @@ import (
 	"flag"
 	"github.com/qencept/gomitm/pkg/config"
 	"github.com/qencept/gomitm/pkg/doh"
+	ddump "github.com/qencept/gomitm/pkg/doh/dump"
+	"github.com/qencept/gomitm/pkg/doh/tamper"
 	"github.com/qencept/gomitm/pkg/forgery"
 	"github.com/qencept/gomitm/pkg/http1"
+	hdump "github.com/qencept/gomitm/pkg/http1/dump"
 	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/proxy"
 	"github.com/qencept/gomitm/pkg/session"
+	sdump "github.com/qencept/gomitm/pkg/session/dump"
 	"github.com/qencept/gomitm/pkg/trusted"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -42,12 +46,13 @@ func run(l logger.Logger) error {
 		return err
 	}
 
-	dohMutators := []doh.Mutator{NewApp(), doh.NewDump(l, cfg.Paths.Doh)}
-	http1Mutators := []http1.Mutator{doh.New(l, dohMutators...), http1.NewDump(l, cfg.Paths.Http)}
-	sessionMutators := []session.Mutator{http1.New(l, http1Mutators...), session.NewDump(l, cfg.Paths.Session)}
-	s := session.New(l, sessionMutators...)
+	typeA := tamper.SubstitutionTypeA{"www.example.com.": [4]byte{1, 1, 1, 1}}
+	dohCreators := []doh.Creator{ddump.New(l, cfg.Paths.Doh), tamper.New(typeA)}
+	http1Creators := []http1.Creator{hdump.New(l, cfg.Paths.Http), doh.New(l, dohCreators...)}
+	sessionCreators := []session.Creator{sdump.New(l, cfg.Paths.Session), http1.New(l, http1Creators...)}
+	i := session.New(l, sessionCreators...)
 
-	if err = proxy.New(a, t, f, s, l).Run(); err != nil {
+	if err = proxy.New(a, t, f, i, l).Run(); err != nil {
 		return err
 	}
 
