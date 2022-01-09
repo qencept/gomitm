@@ -34,4 +34,5 @@ func (d *copier) MutateBackward(w io.Writer, r io.Reader, _ session.Parameters) 
 	}
 }
 
+var _ session.Creator = (*creator)(nil)
 var _ session.Mutator = (*copier)(nil)

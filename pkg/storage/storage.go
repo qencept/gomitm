@@ -5,8 +5,6 @@ import (
 	"github.com/qencept/gomitm/pkg/session"
 	"io"
 	"os"
-	"strconv"
-	"time"
 )
 
 func fileName(dir session.Direction, path, ts string, sp session.Parameters) string {
@@ -22,8 +20,7 @@ func fileName(dir session.Direction, path, ts string, sp session.Parameters) str
 }
 
 func New(dir session.Direction, path string, sp session.Parameters) (io.WriteCloser, error) {
-	ts := strconv.Itoa(int(time.Now().Unix()))
-	name := fileName(dir, path, ts, sp)
+	name := fileName(dir, path, sp.Timestamp, sp)
 	f, err := os.Create(name)
 	if err != nil {
 		return nil, err

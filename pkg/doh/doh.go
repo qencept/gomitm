@@ -10,19 +10,35 @@ import (
 	"net/http"
 )
 
-type Doh struct {
+type creator struct {
+	logger   logger.Logger
+	creators []Creator
+}
+
+func New(logger logger.Logger, creators ...Creator) http1.Creator {
+	return &creator{logger: logger, creators: creators}
+}
+
+func (c *creator) Create() http1.Mutator {
+	var mutators []Mutator
+	for _, http1Creator := range c.creators {
+		mutators = append(mutators, http1Creator.Create())
+	}
+	return &doh{
+		logger:   c.logger,
+		mutators: mutators,
+	}
+}
+
+type doh struct {
 	logger   logger.Logger
 	mutators []Mutator
 }
 
-func New(logger logger.Logger, mutators ...Mutator) *Doh {
-	return &Doh{logger: logger, mutators: mutators}
-}
-
-func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Request {
+func (d *doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Request {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		d.logger.Errorln("Doh body reading: ", err)
+		d.logger.Warnln("doh body reading: ", err)
 	}
 	msg := dnsmessage.Message{}
 	if err = msg.Unpack(body); err != nil {
@@ -34,7 +50,7 @@ func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Requ
 	}
 	pack, err := msg.Pack()
 	if err != nil {
-		d.logger.Errorln("Doh Request Pack: ", err)
+		d.logger.Warnln("doh req pack: ", err)
 		return req
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(pack))
@@ -42,10 +58,10 @@ func (d *Doh) MutateRequest(req *http.Request, sp session.Parameters) *http.Requ
 	return req
 }
 
-func (d *Doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.Response {
+func (d *doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.Response {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		d.logger.Errorln("Doh body reading: ", err)
+		d.logger.Warnln("doh body reading: ", err)
 		return resp
 	}
 	msg := dnsmessage.Message{}
@@ -53,12 +69,12 @@ func (d *Doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.R
 		resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 		return resp
 	}
-	for _, mutator := range d.mutators {
-		msg.Answers = mutator.MutateAnswer(msg.Answers, sp)
+	for i := len(d.mutators) - 1; i >= 0; i-- {
+		msg.Answers = d.mutators[i].MutateAnswer(msg.Answers, sp)
 	}
 	pack, err := msg.Pack()
 	if err != nil {
-		d.logger.Errorln("Doh Response Pack: ", err)
+		d.logger.Warnln("doh resp pack: ", err)
 		return resp
 	}
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(pack))
@@ -66,4 +82,5 @@ func (d *Doh) MutateResponse(resp *http.Response, sp session.Parameters) *http.R
 	return resp
 }
 
-var _ http1.Mutator = (*Doh)(nil)
+var _ http1.Creator = (*creator)(nil)
+var _ http1.Mutator = (*doh)(nil)

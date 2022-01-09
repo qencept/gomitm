@@ -53,4 +53,5 @@ func (d *dump) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) {
 	}
 }
 
+var _ session.Creator = (*creator)(nil)
 var _ session.Mutator = (*dump)(nil)

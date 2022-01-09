@@ -10,19 +10,28 @@ import (
 	"net"
 )
 
+type creator struct {
+	logger logger.Logger
+	path   string
+}
+
+func New(logger logger.Logger, path string) doh.Creator {
+	return &creator{logger: logger, path: path}
+}
+
+func (c *creator) Create() doh.Mutator {
+	return &dump{logger: c.logger, path: c.path}
+}
+
 type dump struct {
 	logger logger.Logger
 	path   string
 }
 
-func NewDump(logger logger.Logger, path string) *dump {
-	return &dump{logger: logger, path: path}
-}
-
 func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parameters) []dnsmessage.Question {
 	f, err := storage.New(session.Forward, d.path, sp)
 	if err != nil {
-		d.logger.Errorln("Doh new dump: ", err)
+		d.logger.Warnln("doh new dump: ", err)
 		return questions
 	}
 	defer func() {
@@ -30,7 +39,7 @@ func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parame
 	}()
 	for _, q := range questions {
 		if _, err = fmt.Fprintln(f, q.Name, q.Type); err != nil {
-			d.logger.Errorln("Doh dumping: ", err)
+			d.logger.Warnln("doh dump question: ", err)
 			return questions
 		}
 	}
@@ -40,7 +49,7 @@ func (d *dump) MutateQuestion(questions []dnsmessage.Question, sp session.Parame
 func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters) []dnsmessage.Resource {
 	f, err := storage.New(session.Backward, d.path, sp)
 	if err != nil {
-		d.logger.Errorln("Doh new dump: ", err)
+		d.logger.Warnln("doh new dump: ", err)
 		return answers
 	}
 	defer func() { _ = f.Close() }()
@@ -55,11 +64,12 @@ func (d *dump) MutateAnswer(answers []dnsmessage.Resource, sp session.Parameters
 			str = b.GoString()
 		}
 		if _, err = fmt.Fprintln(f, a.Header.Name, a.Header.Type, str); err != nil {
-			d.logger.Errorln("Doh dumping: ", err)
+			d.logger.Warnln("doh dump answer: ", err)
 			return answers
 		}
 	}
 	return answers
 }
 
+var _ doh.Creator = (*creator)(nil)
 var _ doh.Mutator = (*dump)(nil)

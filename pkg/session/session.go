@@ -5,6 +5,7 @@ import (
 	"github.com/qencept/gomitm/pkg/shuttler"
 	"io"
 	"sync"
+	"time"
 )
 
 type Session struct {
@@ -17,7 +18,7 @@ func New(logger logger.Logger, creators ...Creator) shuttler.Shuttler {
 }
 
 func (s *Session) Shuttle(client, server shuttler.Connection) {
-	sp := NewParameters(client, server)
+	sp := NewParameters(client, server, time.Now().Unix())
 	var fwg, bwg sync.WaitGroup
 	var fcr io.Reader = client
 	var bcw io.WriteCloser = client

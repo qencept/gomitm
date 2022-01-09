@@ -100,8 +100,8 @@ func (h *http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) 
 		defer func(resp *http.Response) {
 			_ = resp.Body.Close()
 		}(resp)
-		for _, mutator := range h.mutators {
-			resp = mutator.MutateResponse(resp, sp)
+		for i := len(h.mutators) - 1; i >= 0; i-- {
+			resp = h.mutators[i].MutateResponse(resp, sp)
 		}
 		response, err := httputil.DumpResponse(resp, true)
 		if err != nil {
@@ -115,4 +115,5 @@ func (h *http1) MutateBackward(w io.Writer, r io.Reader, sp session.Parameters) 
 	}
 }
 
+var _ session.Creator = (*creator)(nil)
 var _ session.Mutator = (*http1)(nil)

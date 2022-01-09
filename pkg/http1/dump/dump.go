@@ -69,4 +69,5 @@ func (d *dump) MutateResponse(resp *http.Response, sp session.Parameters) *http.
 	return resp
 }
 
+var _ http1.Creator = (*creator)(nil)
 var _ http1.Mutator = (*dump)(nil)

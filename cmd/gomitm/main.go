@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"github.com/qencept/gomitm/pkg/config"
+	"github.com/qencept/gomitm/pkg/doh"
+	ddump "github.com/qencept/gomitm/pkg/doh/dump"
+	"github.com/qencept/gomitm/pkg/doh/tamper"
 	"github.com/qencept/gomitm/pkg/forgery"
 	"github.com/qencept/gomitm/pkg/http1"
 	hdump "github.com/qencept/gomitm/pkg/http1/dump"
@@ -43,7 +46,9 @@ func run(l logger.Logger) error {
 		return err
 	}
 
-	http1Creators := []http1.Creator{hdump.New(l, cfg.Paths.Http)}
+	typeA := tamper.SubstitutionTypeA{"www.example.com.": [4]byte{1, 1, 1, 1}}
+	dohCreators := []doh.Creator{ddump.New(l, cfg.Paths.Doh), tamper.New(typeA)}
+	http1Creators := []http1.Creator{hdump.New(l, cfg.Paths.Http), doh.New(l, dohCreators...)}
 	sessionCreators := []session.Creator{sdump.New(l, cfg.Paths.Session), http1.New(l, http1Creators...)}
 	i := session.New(l, sessionCreators...)
 
