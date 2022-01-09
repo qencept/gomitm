@@ -1,12 +1,14 @@
-package storage
+package session
 
 import (
 	"crypto/tls"
 	"github.com/qencept/gomitm/pkg/shuttler"
 )
 
+type Direction int
+
 const (
-	Forward int = iota + 1
+	Forward Direction = iota + 1
 	Backward
 )
 

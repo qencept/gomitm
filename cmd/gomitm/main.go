@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"github.com/qencept/gomitm/pkg/config"
-	"github.com/qencept/gomitm/pkg/doh"
 	"github.com/qencept/gomitm/pkg/forgery"
-	"github.com/qencept/gomitm/pkg/http1"
 	"github.com/qencept/gomitm/pkg/logger"
 	"github.com/qencept/gomitm/pkg/proxy"
 	"github.com/qencept/gomitm/pkg/session"
+	"github.com/qencept/gomitm/pkg/session/copier"
+	"github.com/qencept/gomitm/pkg/session/dump"
 	"github.com/qencept/gomitm/pkg/trusted"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -42,12 +42,13 @@ func run(l logger.Logger) error {
 		return err
 	}
 
-	dohMutators := []doh.Mutator{NewApp(), doh.NewDump(l, cfg.Paths.Doh)}
-	http1Mutators := []http1.Mutator{doh.New(l, dohMutators...), http1.NewDump(l, cfg.Paths.Http)}
-	sessionMutators := []session.Mutator{http1.New(l, http1Mutators...), session.NewDump(l, cfg.Paths.Session)}
-	s := session.New(l, sessionMutators...)
+	//dohMutators := []doh.Mutator{NewApp(), dump3.NewCopy(l, cfg.Paths.Doh)}
+	//http1Mutators := []http1.Mutator{doh.NewCopy(l, dohMutators...), dump2.NewCopy(l, cfg.Paths.Http)}
+	//sessionMutators := []inspector.Mutator{http1.NewCopy(l, http1Mutators...), dump.NewCopy(l, cfg.Paths.Inspector)}
+	sessionCreators := []session.Creator{copier.New(l), dump.New(l, cfg.Paths.Session), copier.New(l)}
+	i := session.New(l, sessionCreators...)
 
-	if err = proxy.New(a, t, f, s, l).Run(); err != nil {
+	if err = proxy.New(a, t, f, i, l).Run(); err != nil {
 		return err
 	}
 
