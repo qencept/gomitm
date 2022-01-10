@@ -20,6 +20,9 @@ type Config struct {
 		Http    string `yaml:"http"`
 		Session string `yaml:"session"`
 	} `yaml:"paths"`
+	Tamper struct {
+		TypeA map[string][4]byte `yaml:"typeA"`
+	} `yaml:"tamper"`
 }
 
 func ReadFile(configFile string) (*Config, error) {

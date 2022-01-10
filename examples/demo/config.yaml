@@ -7,3 +7,6 @@ paths:
   doh: "doh"
   http: "http"
   session: "session"
+tamper:
+  typeA:
+    "www.example.com.": [1, 2, 3, 4]

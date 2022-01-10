@@ -46,7 +46,7 @@ func run(l logger.Logger) error {
 		return err
 	}
 
-	typeA := tamper.SubstitutionTypeA{"www.example.com.": [4]byte{1, 1, 1, 1}}
+	typeA := tamper.SubstitutionTypeA(cfg.Tamper.TypeA)
 	dohCreators := []doh.Creator{ddump.New(l, cfg.Paths.Doh), tamper.New(typeA)}
 	http1Creators := []http1.Creator{hdump.New(l, cfg.Paths.Http), doh.New(l, dohCreators...)}
 	sessionCreators := []session.Creator{sdump.New(l, cfg.Paths.Session), http1.New(l, http1Creators...)}
